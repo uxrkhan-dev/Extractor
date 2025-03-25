@@ -1,0 +1,64 @@
+(async function() {
+    async function delay(time) {
+        return new Promise(resolve => setTimeout(resolve, time));
+    }
+
+    async function extractContactInfo() {
+        let contactData = [];
+
+        // Find and click all buttons to open tooltips
+        let buttons = document.querySelectorAll('.styles_footerWrapper__fzSEA button.styles_iconWrapper__offmB');
+
+        for (let button of buttons) {
+            button.click();
+            await delay(1000); // Wait for tooltip to load
+
+            let tooltip = document.querySelector('.tooltip_tooltip-inner___wDGV');
+            if (tooltip) {
+                let details = tooltip.querySelectorAll('.styles_list__2Yton li');
+                let info = [];
+
+                details.forEach(item => info.push(item.innerText.trim()));
+                contactData.push(info.join(', '));
+            }
+        }
+
+        return contactData;
+    }
+
+    async function goToNextPage() {
+        let nextPageBtn = document.querySelector('.pagination-link_next__NdSsd');
+        if (nextPageBtn) {
+            nextPageBtn.click();
+            await delay(3000); // Wait for the new page to load
+            return true;
+        }
+        return false;
+    }
+
+    async function scrapeAllPages() {
+        let allData = [];
+        let page = 1;
+
+        do {
+            console.log(`Scraping page ${page}...`);
+            let data = await extractContactInfo();
+            allData.push(...data);
+            page++;
+        } while (await goToNextPage());
+
+        console.log("Scraping completed!");
+        return allData;
+    }
+
+    function saveToFile(data) {
+        let blob = new Blob([data.join('\n')], { type: 'text/plain' });
+        let link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = "contact_info.txt";
+        link.click();
+    }
+
+    let extractedData = await scrapeAllPages();
+    saveToFile(extractedData);
+})();
